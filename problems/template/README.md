@@ -1,4 +1,4 @@
-# Problem {{.Number}}: {{.Name}}
+# Problem __NUMBER__: __NAME__
 
 ## Problem Description
 [Add problem description here]

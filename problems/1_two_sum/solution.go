@@ -1,5 +1,5 @@
-// Package problem_1 will be replaced with the actual package name
-package problem_1
+// Package problem1 contains the solution for problem 1
+package problem1
 
 // Problem 1: Two Sum
 // https://leetcode.com/problems/two-sum/

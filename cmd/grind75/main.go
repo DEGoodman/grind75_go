@@ -76,6 +76,13 @@ func createNewProblem(number, name string) {
 		os.Exit(1)
 	}
 
+	// Create template data
+	tmplData := map[string]string{
+		"__NUMBER__": number,
+		"__NAME__":   name,
+		"__SLUG__":   strings.ToLower(strings.ReplaceAll(name, " ", "-")),
+	}
+
 	// Process each template file
 	templateFiles := []string{"solution.go", "solution_test.go", "README.md"}
 	for _, filename := range templateFiles {
@@ -89,10 +96,9 @@ func createNewProblem(number, name string) {
 
 		// Replace template placeholders
 		content := string(tmplContent)
-		content = strings.ReplaceAll(content, "TEMPLATE_PACKAGE", fmt.Sprintf("problem_%s", number))
-		content = strings.ReplaceAll(content, "TEMPLATE_NUMBER", number)
-		content = strings.ReplaceAll(content, "TEMPLATE_NAME", name)
-		content = strings.ReplaceAll(content, "TEMPLATE_SLUG", strings.ToLower(strings.ReplaceAll(name, " ", "-")))
+		for placeholder, value := range tmplData {
+			content = strings.ReplaceAll(content, placeholder, value)
+		}
 
 		// Write the processed template
 		if err := os.WriteFile(filepath.Join(dirName, filename), []byte(content), 0644); err != nil {

@@ -1,4 +1,4 @@
-package TEMPLATE_PACKAGE
+package problem__NUMBER__
 
 import "testing"
 

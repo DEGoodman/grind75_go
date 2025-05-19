@@ -1,8 +1,8 @@
-// Package TEMPLATE_PACKAGE will be replaced with the actual package name
-package TEMPLATE_PACKAGE
+// Package problem__NUMBER__ contains the solution for problem __NUMBER__
+package problem__NUMBER__
 
-// Problem TEMPLATE_NUMBER: TEMPLATE_NAME
-// https://leetcode.com/problems/TEMPLATE_SLUG/
+// Problem __NUMBER__: __NAME__
+// https://leetcode.com/problems/__SLUG__/
 
 func twoSum(nums []int, target int) []int {
 	// TODO: Implement your solution here
