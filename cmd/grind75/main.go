@@ -13,7 +13,18 @@ const (
 	problemsDir = "problems"
 )
 
+type ProblemTemplate struct {
+	Number string
+	Name   string
+	Slug   string
+}
+
 func main() {
+	// Only print debug message if G75_DEBUG is set
+	if os.Getenv("G75_DEBUG") != "" {
+		fmt.Println("DEBUG: Running grind75 CLI tool")
+	}
+
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)
@@ -65,81 +76,43 @@ func createNewProblem(number, name string) {
 		os.Exit(1)
 	}
 
-	// Create solution.go
-	solutionContent := fmt.Sprintf(`package main
+	// Process each template file
+	templateFiles := []string{"solution.go", "solution_test.go", "README.md"}
+	for _, filename := range templateFiles {
+		// Read template
+		templatePath := filepath.Join(templateDir, filename)
+		tmplContent, err := os.ReadFile(templatePath)
+		if err != nil {
+			fmt.Printf("Error reading template %s: %v\n", filename, err)
+			os.Exit(1)
+		}
 
-// Problem %s: %s
-// https://leetcode.com/problems/%s/
+		// Replace template placeholders
+		content := string(tmplContent)
+		content = strings.ReplaceAll(content, "TEMPLATE_PACKAGE", fmt.Sprintf("problem_%s", number))
+		content = strings.ReplaceAll(content, "TEMPLATE_NUMBER", number)
+		content = strings.ReplaceAll(content, "TEMPLATE_NAME", name)
+		content = strings.ReplaceAll(content, "TEMPLATE_SLUG", strings.ToLower(strings.ReplaceAll(name, " ", "-")))
 
-func main() {
-	// TODO: Implement your solution here
-}
-`, number, name, strings.ToLower(strings.ReplaceAll(name, " ", "-")))
-
-	if err := os.WriteFile(filepath.Join(dirName, "solution.go"), []byte(solutionContent), 0644); err != nil {
-		fmt.Printf("Error creating solution.go: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Create solution_test.go
-	testContent := fmt.Sprintf(`package main
-
-import "testing"
-
-func TestSolution(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    interface{}
-		expected interface{}
-	}{
-		// TODO: Add your test cases here
-		{
-			name:     "Example 1",
-			input:    nil,
-			expected: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// TODO: Implement your test cases
-			t.Skip("Test not implemented yet")
-		})
-	}
-}
-`)
-
-	if err := os.WriteFile(filepath.Join(dirName, "solution_test.go"), []byte(testContent), 0644); err != nil {
-		fmt.Printf("Error creating solution_test.go: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Create README.md
-	readmeContent := fmt.Sprintf(`# Problem %s: %s
-
-## Problem Description
-[Add problem description here]
-
-## Solution
-[Add solution explanation here]
-
-## Time Complexity
-[Add time complexity analysis here]
-
-## Space Complexity
-[Add space complexity analysis here]
-`, number, name)
-
-	if err := os.WriteFile(filepath.Join(dirName, "README.md"), []byte(readmeContent), 0644); err != nil {
-		fmt.Printf("Error creating README.md: %v\n", err)
-		os.Exit(1)
+		// Write the processed template
+		if err := os.WriteFile(filepath.Join(dirName, filename), []byte(content), 0644); err != nil {
+			fmt.Printf("Error creating %s: %v\n", filename, err)
+			os.Exit(1)
+		}
 	}
 
 	fmt.Printf("Created new problem directory: %s\n", dirName)
 }
 
 func runTests(problemNumber string) {
+	if os.Getenv("G75_DEBUG") != "" {
+		fmt.Println("DEBUG: Starting runTests function")
+	}
+
 	if problemNumber == "all" {
+		if os.Getenv("G75_DEBUG") != "" {
+			fmt.Println("DEBUG: Running all tests")
+		}
 		cmd := exec.Command("go", "test", "./...")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -150,8 +123,13 @@ func runTests(problemNumber string) {
 		return
 	}
 
-	// Find the problem directory
-	matches, err := filepath.Glob(fmt.Sprintf("%s/%s_*", problemsDir, problemNumber))
+	// Find the problem directory using glob
+	pattern := fmt.Sprintf("%s/%s_*", problemsDir, problemNumber)
+	if os.Getenv("G75_DEBUG") != "" {
+		fmt.Printf("DEBUG: Looking for tests matching pattern: %s\n", pattern)
+	}
+
+	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		fmt.Printf("Error finding problem directory: %v\n", err)
 		os.Exit(1)
@@ -161,12 +139,41 @@ func runTests(problemNumber string) {
 		os.Exit(1)
 	}
 
-	cmd := exec.Command("go", "test", matches[0])
+	// Use the first match (there should only be one)
+	testPath := fmt.Sprintf("./%s", matches[0])
+	if os.Getenv("G75_DEBUG") != "" {
+		fmt.Printf("DEBUG: Running tests in: %s\n", testPath)
+	}
+
+	cmd := exec.Command("go", "test", testPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Error running tests: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// findModuleRoot finds the directory containing go.mod by walking up from the current directory
+func findModuleRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		// Check if go.mod exists in current directory
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// We've reached the root of the filesystem
+			return "", fmt.Errorf("go.mod not found in any parent directory")
+		}
+		dir = parent
 	}
 }
 
@@ -182,11 +189,6 @@ func runSolution(problemNumber string) {
 		os.Exit(1)
 	}
 
-	cmd := exec.Command("go", "run", filepath.Join(matches[0], "solution.go"))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error running solution: %v\n", err)
-		os.Exit(1)
-	}
-} 
+	fmt.Printf("Solution file: %s/solution.go\n", matches[0])
+	fmt.Println("Note: Solutions are designed to be run through tests. Use 'grind75 test' to run the solution.")
+}
