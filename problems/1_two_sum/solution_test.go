@@ -15,7 +15,18 @@ func TestTwoSum(t *testing.T) {
 			target:   9,
 			expected: []int{0, 1},
 		},
-		// Add more test cases here
+		{
+			name:     "Example 2",
+			nums:     []int{3, 2, 4},
+			target:   6,
+			expected: []int{1, 2},
+		},
+		{
+			name:     "Example 3",
+			nums:     []int{3, 3},
+			target:   6,
+			expected: []int{0, 1},
+		},
 	}
 
 	for _, tt := range tests {
