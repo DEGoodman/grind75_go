@@ -1,6 +1,6 @@
 # Grind75 Go Solutions
 
-This repository contains my solutions to the Grind75 problem set implemented in Go. The project includes a simple CLI tool to help manage and test solutions efficiently.
+This repository contains my solutions to the (Grind75 problem set)[https://www.techinterviewhandbook.org/grind75/] implemented in Go. The project includes a simple CLI tool to help manage and test solutions efficiently.
 
 ## Project Structure
 
